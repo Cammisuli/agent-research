@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "turbo build:internal --filter=web",
+    "build": "nx build:internal",
     "build:internal": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -14,6 +14,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "agents": "workspace:*",
     "@langchain/core": "^0.3.42",
     "@langchain/langgraph": "^0.2.55",
     "@langchain/langgraph-api": "^0.0.16",
@@ -63,7 +64,6 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "autoprefixer": "^10.4.20",
     "dotenv": "^16.4.7",
-    "turbo": "latest",
     "eslint": "^9.19.0",
     "eslint-config-next": "15.2.2",
     "eslint-plugin-react-hooks": "^5.0.0",
