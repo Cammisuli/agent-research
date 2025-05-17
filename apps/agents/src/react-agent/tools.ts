@@ -2,16 +2,7 @@
  * This file defines the tools available to the ReAct agent.
  * Tools are functions that the agent can use to interact with external systems or perform specific tasks.
  */
-import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { GIT_TOOLS } from "./git-tools.js";
-
-/**
- * Tavily search tool configuration
- * This tool allows the agent to perform web searches using the Tavily API.
- */
-const searchTavily = new TavilySearchResults({
-  maxResults: 3,
-});
 
 /**
  * Export an array of all available tools
@@ -21,4 +12,4 @@ const searchTavily = new TavilySearchResults({
  * and add them to this array.
  * See https://js.langchain.com/docs/how_to/custom_tools/#tool-function for more information.
  */
-export const TOOLS = [searchTavily, ...GIT_TOOLS];
+export const TOOLS = [...GIT_TOOLS];
