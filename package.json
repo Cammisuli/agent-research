@@ -6,7 +6,8 @@
     "dev": "nx run web:dev",
     "build": "nx run-many -t build",
     "format": "nx run-many -t format",
-    "lint": "nx run-many -t lint"
+    "lint": "nx run-many -t lint",
+    "test:git-agent": "nx run agents:build && npx tsx apps/agents/src/test-git-agent.ts"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",

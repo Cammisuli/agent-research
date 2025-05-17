@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx @langchain/langgraph-cli dev --port 2024 --config ../../langgraph.json",
+    "typecheck": "tsc --noEmit",
     "build": "nx build:internal",
     "build:internal": "pnpm run clean && tsc",
     "clean": "rimraf -rf ./dist || true",

@@ -1,10 +1,14 @@
 import { AIMessage } from "@langchain/core/messages";
 import { RunnableConfig } from "@langchain/core/runnables";
-import { Annotation, MessagesAnnotation, StateGraph } from "@langchain/langgraph";
+import {
+  Annotation,
+  MessagesAnnotation,
+  StateGraph,
+} from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 
 import { ConfigurationSchema, ensureConfiguration } from "./configuration.js";
-import { TOOLS } from "./tools.js";
+import { GIT_ONLY_TOOLS } from "./tools-git-only.js";
 import { loadChatModel } from "./utils.js";
 
 // Extended state to track Git workflow progress
@@ -30,7 +34,7 @@ const GitWorkflowAnnotation = Annotation.Root({
 // Define the function that calls the model
 async function callModel(
   state: typeof GitWorkflowAnnotation.State,
-  config: RunnableConfig,
+  config: RunnableConfig
 ): Promise<typeof GitWorkflowAnnotation.Update> {
   /** Call the LLM powering our agent. **/
   const configuration = ensureConfiguration(config);
@@ -41,20 +45,26 @@ async function callModel(
     throw new Error("Failed to load the chat model");
   }
   // Cast to any to resolve TypeScript errors with bindTools
-  const model = (loadedModel as any).bindTools(TOOLS);
+  const model = (loadedModel as any).bindTools(GIT_ONLY_TOOLS);
 
   // Add current workflow step to context
-  let systemPrompt = configuration.systemPromptTemplate
-    .replace("{system_time}", new Date().toISOString());
-  
+  let systemPrompt = configuration.systemPromptTemplate.replace(
+    "{system_time}",
+    new Date().toISOString()
+  );
+
   // Add workflow context based on current step
   systemPrompt += `\n\nCurrent workflow step: ${state.workflowStep}`;
-  
+
   // Add repository context if available
   if (state.repository.url) {
     systemPrompt += `\n\nRepository: ${state.repository.url}`;
-    systemPrompt += state.repository.directory ? `\nLocal directory: ${state.repository.directory}` : '';
-    systemPrompt += state.repository.branch ? `\nBranch: ${state.repository.branch}` : '';
+    systemPrompt += state.repository.directory
+      ? `\nLocal directory: ${state.repository.directory}`
+      : "";
+    systemPrompt += state.repository.branch
+      ? `\nBranch: ${state.repository.branch}`
+      : "";
   }
 
   // Add guidelines based on workflow step
@@ -92,7 +102,9 @@ async function callModel(
 }
 
 // Determine the next step in the workflow based on tools used and context
-function determineNextWorkflowStep(state: typeof GitWorkflowAnnotation.State): typeof GitWorkflowAnnotation.Update {
+function determineNextWorkflowStep(
+  state: typeof GitWorkflowAnnotation.State
+): typeof GitWorkflowAnnotation.Update {
   const messages = state.messages;
   const lastMessage = messages[messages.length - 1];
   const toolCalls = (lastMessage as AIMessage)?.tool_calls || [];
@@ -103,8 +115,8 @@ function determineNextWorkflowStep(state: typeof GitWorkflowAnnotation.State): t
   }
 
   // Check for tool usage patterns to determine workflow progression
-  const toolNames = toolCalls.map(tool => tool.name);
-  
+  const toolNames = toolCalls.map((tool) => tool.name);
+
   // Current step logic
   switch (state.workflowStep) {
     case "initialize":
@@ -113,11 +125,14 @@ function determineNextWorkflowStep(state: typeof GitWorkflowAnnotation.State): t
         return { workflowStep: "explore" };
       }
       break;
-    
+
     case "explore":
       // If file operations were called after exploring, move to modify step
-      if (toolNames.includes("read_file") || toolNames.includes("list_directory")) {
-        const writeOps = toolCalls.filter(tool => tool.name === "write_file");
+      if (
+        toolNames.includes("read_file") ||
+        toolNames.includes("list_directory")
+      ) {
+        const writeOps = toolCalls.filter((tool) => tool.name === "write_file");
         if (writeOps.length > 0) {
           return { workflowStep: "modify" };
         }
@@ -127,21 +142,21 @@ function determineNextWorkflowStep(state: typeof GitWorkflowAnnotation.State): t
         return { workflowStep: "modify" };
       }
       break;
-      
+
     case "modify":
       // If git status was called after modifications, move to verify step
       if (toolNames.includes("git_status") || toolNames.includes("read_file")) {
         return { workflowStep: "verify" };
       }
       break;
-      
+
     case "verify":
       // If git commit was called after verification, move to commit step
       if (toolNames.includes("git_commit")) {
         return { workflowStep: "commit" };
       }
       break;
-      
+
     case "commit":
       // If git push was called after commit, move to push step
       if (toolNames.includes("git_push")) {
@@ -149,33 +164,36 @@ function determineNextWorkflowStep(state: typeof GitWorkflowAnnotation.State): t
       }
       break;
   }
-  
+
   // Default: don't change the step
   return {};
 }
 
 // Function to update repository information based on tool calls
-function updateRepositoryInfo(state: typeof GitWorkflowAnnotation.State): typeof GitWorkflowAnnotation.Update {
+function updateRepositoryInfo(
+  state: typeof GitWorkflowAnnotation.State
+): typeof GitWorkflowAnnotation.Update {
   const messages = state.messages;
   const lastMessage = messages[messages.length - 1];
-  
+
   // If this isn't a tool call, no repository updates
   if (!(lastMessage as AIMessage)?.tool_calls?.length) {
     return {};
   }
-  
+
   const toolCalls = (lastMessage as AIMessage).tool_calls || [];
   let repositoryUpdate = { ...state.repository };
   let updated = false;
-  
+
   // Check each tool call for repository-related information
   for (const toolCall of toolCalls) {
     try {
       // Handle different possible formats of toolCall.args
-      const args = typeof toolCall.args === 'string' 
-        ? JSON.parse(toolCall.args) 
-        : toolCall.args;
-      
+      const args =
+        typeof toolCall.args === "string"
+          ? JSON.parse(toolCall.args)
+          : toolCall.args;
+
       switch (toolCall.name) {
         case "git_clone":
           if (args.repoUrl) {
@@ -184,7 +202,8 @@ function updateRepositoryInfo(state: typeof GitWorkflowAnnotation.State): typeof
               repositoryUpdate.directory = args.directory;
             } else {
               // Extract repo name from URL if directory not provided
-              const repoName = args.repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
+              const repoName =
+                args.repoUrl.split("/").pop()?.replace(".git", "") || "repo";
               repositoryUpdate.directory = `./${repoName}`;
             }
             if (args.branch) {
@@ -193,17 +212,18 @@ function updateRepositoryInfo(state: typeof GitWorkflowAnnotation.State): typeof
             updated = true;
           }
           break;
-          
+
         case "git_checkout":
           if (args.target) {
             repositoryUpdate.branch = args.target;
             updated = true;
           }
           break;
-          
+
         case "write_file":
           if (args.filePath) {
-            repositoryUpdate.filesModified = repositoryUpdate.filesModified || [];
+            repositoryUpdate.filesModified =
+              repositoryUpdate.filesModified || [];
             if (!repositoryUpdate.filesModified.includes(args.filePath)) {
               repositoryUpdate.filesModified.push(args.filePath);
             }
@@ -215,7 +235,7 @@ function updateRepositoryInfo(state: typeof GitWorkflowAnnotation.State): typeof
       console.warn("Error parsing tool call arguments:", error);
     }
   }
-  
+
   return updated ? { repository: repositoryUpdate } : {};
 }
 
@@ -234,27 +254,32 @@ function routeModelOutput(state: typeof GitWorkflowAnnotation.State): string {
 }
 
 // Process any state updates after tool execution
-function processToolResults(state: typeof GitWorkflowAnnotation.State): typeof GitWorkflowAnnotation.Update {
-  // Combine workflow step updates and repository info updates
-  const workflowUpdate = determineNextWorkflowStep(state);
-  const repoUpdate = updateRepositoryInfo(state);
-  
+function processToolResults(
+  state: typeof GitWorkflowAnnotation.State
+): typeof GitWorkflowAnnotation.Update {
   // Create a properly typed return value
   const result: typeof GitWorkflowAnnotation.Update = {};
-  
+
+  // Get updates from both workflow step and repository info
+  const workflowUpdate = determineNextWorkflowStep(state);
+  const repoUpdate = updateRepositoryInfo(state);
+
   // Only add defined properties from both update objects
-  if ('workflowStep' in workflowUpdate && workflowUpdate.workflowStep !== undefined) {
+  if (
+    "workflowStep" in workflowUpdate &&
+    workflowUpdate.workflowStep !== undefined
+  ) {
     result.workflowStep = workflowUpdate.workflowStep;
   }
-  
-  if ('messages' in workflowUpdate && workflowUpdate.messages !== undefined) {
+
+  if ("messages" in workflowUpdate && workflowUpdate.messages !== undefined) {
     result.messages = workflowUpdate.messages;
   }
-  
-  if ('repository' in repoUpdate && repoUpdate.repository !== undefined) {
+
+  if ("repository" in repoUpdate && repoUpdate.repository !== undefined) {
     result.repository = repoUpdate.repository;
   }
-  
+
   return result;
 }
 
@@ -262,14 +287,11 @@ function processToolResults(state: typeof GitWorkflowAnnotation.State): typeof G
 const workflow = new StateGraph(GitWorkflowAnnotation, ConfigurationSchema)
   // Define the nodes for our workflow
   .addNode("callModel", callModel)
-  .addNode("tools", new ToolNode(TOOLS))
+  .addNode("tools", new ToolNode(GIT_ONLY_TOOLS))
   .addNode("processResults", processToolResults)
   // Set the entrypoint as `callModel`
   .addEdge("__start__", "callModel")
-  .addConditionalEdges(
-    "callModel",
-    routeModelOutput,
-  )
+  .addConditionalEdges("callModel", routeModelOutput)
   // After tools are executed, process results to update workflow state
   .addEdge("tools", "processResults")
   // Then go back to the model
@@ -277,7 +299,7 @@ const workflow = new StateGraph(GitWorkflowAnnotation, ConfigurationSchema)
 
 // Finally, we compile it!
 // This compiles it into a graph you can invoke and deploy.
-export const graph = workflow.compile({
+export const gitOnlyGraph = workflow.compile({
   interruptBefore: [], // if you want to update the state before calling the tools
   interruptAfter: [],
 });

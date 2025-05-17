@@ -3,6 +3,7 @@
  * Tools are functions that the agent can use to interact with external systems or perform specific tasks.
  */
 import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
+import { GIT_TOOLS } from "./git-tools.js";
 
 /**
  * Tavily search tool configuration
@@ -20,4 +21,4 @@ const searchTavily = new TavilySearchResults({
  * and add them to this array.
  * See https://js.langchain.com/docs/how_to/custom_tools/#tool-function for more information.
  */
-export const TOOLS = [searchTavily];
+export const TOOLS = [searchTavily, ...GIT_TOOLS];
