@@ -46,7 +46,7 @@ credentials.json
 # LangGraph API
 .langgraph_api
 
-
+tmp/
 
 .nx/cache
 .nx/workspace-data

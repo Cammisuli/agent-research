@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "build": "nx build:internal",
     "build:internal": "pnpm run clean && tsc",
-    "clean": "rimraf -rf ./dist || true",
+    "clean": "rimraf -rf ./dist ./tmp || true",
     "format": "prettier --config .prettierrc --write \"src\"",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix"

@@ -10,7 +10,7 @@ const execAsync = promisify(exec);
 // Function to safely execute shell commands
 async function safeExecAsync(command: string, cwd?: string): Promise<string> {
   try {
-    console.log(`Executing: ${command} in ${cwd || 'current directory'}`);
+    console.log(`Executing: ${command} in ${cwd || "current directory"}`);
     const { stdout, stderr } = await execAsync(command, { cwd });
     if (stderr) {
       console.warn(`Command produced warnings: ${stderr}`);
@@ -18,13 +18,19 @@ async function safeExecAsync(command: string, cwd?: string): Promise<string> {
     return stdout.trim();
   } catch (error) {
     console.error(`Error executing command: ${command}`, error);
-    throw new Error(`Failed to execute: ${command} - ${(error as Error).message}`);
+    throw new Error(
+      `Failed to execute: ${command} - ${(error as Error).message}`
+    );
   }
 }
 
 // Git clone tool
 export const gitClone = tool(
-  async ({ repoUrl, directory, branch }: {
+  async ({
+    repoUrl,
+    directory,
+    branch,
+  }: {
     repoUrl: string;
     directory?: string;
     branch?: string;
@@ -32,7 +38,8 @@ export const gitClone = tool(
     try {
       // Extract repo name from URL if directory not provided
       if (!directory) {
-        const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
+        const repoName =
+          repoUrl.split("/").pop()?.replace(".git", "") || "repo";
         directory = `./${repoName}`;
       }
 
@@ -58,12 +65,23 @@ export const gitClone = tool(
   },
   {
     name: "git_clone",
-    description: "Clone a git repository to a local directory. Returns the path to the cloned repo.",
+    description:
+      "Clone a git repository to a local directory. Returns the path to the cloned repo.",
     schema: z.object({
       repoUrl: z.string().describe("URL of the git repository to clone"),
-      directory: z.string().optional().describe("Optional directory to clone into. If not provided, the repo name will be used"),
-      branch: z.string().optional().describe("Optional branch to checkout after cloning")
-    })
+      directory: z
+        .string()
+        .optional()
+        .nullable()
+        .describe(
+          "Optional directory to clone into. If not provided, the repo name will be used"
+        ),
+      branch: z
+        .string()
+        .optional()
+        .nullable()
+        .describe("Optional branch to checkout after cloning"),
+    }),
   }
 );
 
@@ -72,7 +90,7 @@ export const gitCheckout = tool(
   async ({
     directory,
     target,
-    createBranch = false
+    createBranch = false,
   }: {
     directory: string;
     target: string;
@@ -94,9 +112,15 @@ export const gitCheckout = tool(
     description: "Checkout a branch or commit in a git repository",
     schema: z.object({
       directory: z.string().describe("Path to the git repository"),
-      target: z.string().describe("Branch name, tag, or commit hash to checkout"),
-      createBranch: z.boolean().optional().describe("Whether to create a new branch. Default is false")
-    })
+      target: z
+        .string()
+        .describe("Branch name, tag, or commit hash to checkout"),
+      createBranch: z
+        .boolean()
+        .optional()
+        .nullable()
+        .describe("Whether to create a new branch. Default is false"),
+    }),
   }
 );
 
@@ -114,8 +138,8 @@ export const gitStatus = tool(
     name: "git_status",
     description: "Check the status of a git repository",
     schema: z.object({
-      directory: z.string().describe("Path to the git repository")
-    })
+      directory: z.string().describe("Path to the git repository"),
+    }),
   }
 );
 
@@ -124,7 +148,7 @@ export const gitCommit = tool(
   async ({
     directory,
     message,
-    addAll = true
+    addAll = true,
   }: {
     directory: string;
     message: string;
@@ -135,7 +159,10 @@ export const gitCommit = tool(
         await safeExecAsync("git add .", directory);
       }
 
-      const result = await safeExecAsync(`git commit -m "${message}"`, directory);
+      const result = await safeExecAsync(
+        `git commit -m "${message}"`,
+        directory
+      );
       return `Changes committed: ${result}`;
     } catch (error) {
       return `Error committing changes: ${(error as Error).message}`;
@@ -147,8 +174,14 @@ export const gitCommit = tool(
     schema: z.object({
       directory: z.string().describe("Path to the git repository"),
       message: z.string().describe("Commit message"),
-      addAll: z.boolean().optional().describe("Whether to add all files before committing. Default is true")
-    })
+      addAll: z
+        .boolean()
+        .optional()
+        .nullable()
+        .describe(
+          "Whether to add all files before committing. Default is true"
+        ),
+    }),
   }
 );
 
@@ -158,7 +191,7 @@ export const gitPush = tool(
     directory,
     remote = "origin",
     branch,
-    setUpstream = false
+    setUpstream = false,
   }: {
     directory: string;
     remote?: string;
@@ -168,7 +201,10 @@ export const gitPush = tool(
     try {
       // Get current branch if not specified
       if (!branch) {
-        branch = await safeExecAsync("git rev-parse --abbrev-ref HEAD", directory);
+        branch = await safeExecAsync(
+          "git rev-parse --abbrev-ref HEAD",
+          directory
+        );
       }
 
       const pushCmd = setUpstream
@@ -186,10 +222,24 @@ export const gitPush = tool(
     description: "Push commits to a remote repository",
     schema: z.object({
       directory: z.string().describe("Path to the git repository"),
-      remote: z.string().optional().describe("Remote name. Default is 'origin'"),
-      branch: z.string().optional().describe("Branch name to push to. Default is the current branch"),
-      setUpstream: z.boolean().optional().describe("Whether to set the upstream for the branch. Default is false")
-    })
+      remote: z
+        .string()
+        .optional()
+        .nullable()
+        .describe("Remote name. Default is 'origin'"),
+      branch: z
+        .string()
+        .optional()
+        .nullable()
+        .describe("Branch name to push to. Default is the current branch"),
+      setUpstream: z
+        .boolean()
+        .optional()
+        .nullable()
+        .describe(
+          "Whether to set the upstream for the branch. Default is false"
+        ),
+    }),
   }
 );
 
@@ -197,7 +247,7 @@ export const gitPush = tool(
 export const readFile = tool(
   async ({ filePath }: { filePath: string }) => {
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = fs.readFileSync(filePath, "utf-8");
       return `File contents:\n${content}`;
     } catch (error) {
       return `Error reading file: ${(error as Error).message}`;
@@ -207,8 +257,8 @@ export const readFile = tool(
     name: "read_file",
     description: "Read the contents of a file",
     schema: z.object({
-      filePath: z.string().describe("Path to the file to read")
-    })
+      filePath: z.string().describe("Path to the file to read"),
+    }),
   }
 );
 
@@ -233,8 +283,8 @@ export const writeFile = tool(
     description: "Write or update the contents of a file",
     schema: z.object({
       filePath: z.string().describe("Path to the file to write"),
-      content: z.string().describe("Content to write to the file")
-    })
+      content: z.string().describe("Content to write to the file"),
+    }),
   }
 );
 
@@ -243,7 +293,7 @@ export const listDirectory = tool(
   async ({ directory }: { directory: string }) => {
     try {
       const files = fs.readdirSync(directory);
-      return `Directory contents of ${directory}:\n${files.join('\n')}`;
+      return `Directory contents of ${directory}:\n${files.join("\n")}`;
     } catch (error) {
       return `Error listing directory: ${(error as Error).message}`;
     }
@@ -252,8 +302,8 @@ export const listDirectory = tool(
     name: "list_directory",
     description: "List the contents of a directory",
     schema: z.object({
-      directory: z.string().describe("Path to the directory to list")
-    })
+      directory: z.string().describe("Path to the directory to list"),
+    }),
   }
 );
 
@@ -266,5 +316,5 @@ export const GIT_TOOLS = [
   gitPush,
   readFile,
   writeFile,
-  listDirectory
+  listDirectory,
 ];

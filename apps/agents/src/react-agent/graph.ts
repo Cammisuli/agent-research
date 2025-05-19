@@ -1,4 +1,4 @@
-import { isAIMessage } from "@langchain/core/messages";
+import { isAIMessage, isAIMessageChunk } from "@langchain/core/messages";
 import { RunnableConfig } from "@langchain/core/runnables";
 import {
   Annotation,
@@ -100,13 +100,17 @@ async function callModel(
       break;
   }
 
-  const response = await model.invoke([
+  const response = await model?.invoke([
     {
       role: "system",
       content: systemPrompt,
     },
     ...state.messages,
   ]);
+
+  if (!response) {
+    throw new Error("Model response is undefined");
+  }
 
   // We return a list, because this will get added to the existing list
   return { messages: [response] };

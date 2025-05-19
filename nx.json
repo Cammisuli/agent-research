@@ -29,7 +29,7 @@
     },
     "dev": {
       "continuous": true,
-      "dependsOn": ["^dev"],
+      "dependsOn": ["^dev", "clean"],
       "cache": false
     }
   },
