@@ -18,7 +18,7 @@ export const ConfigurationSchema = Annotation.Root({
 });
 
 export function ensureConfiguration(
-  config: RunnableConfig,
+  config: RunnableConfig
 ): typeof ConfigurationSchema.State {
   /**
    * Ensure the defaults are populated.
@@ -27,6 +27,6 @@ export function ensureConfiguration(
   return {
     systemPromptTemplate:
       configurable.systemPromptTemplate ?? SYSTEM_PROMPT_TEMPLATE,
-    model: configurable.model ?? "claude-3-7-sonnet-latest",
+    model: configurable.model ?? "gpt-4.1-mini",
   };
 }

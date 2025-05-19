@@ -1,4 +1,4 @@
-import { AIMessage } from "@langchain/core/messages";
+import { isAIMessage } from "@langchain/core/messages";
 import { RunnableConfig } from "@langchain/core/runnables";
 import {
   Annotation,
@@ -10,16 +10,6 @@ import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { ConfigurationSchema, ensureConfiguration } from "./configuration.js";
 import { TOOLS } from "./tools.js";
 import { loadChatModel } from "./utils.js";
-
-// Utility: Type guard for AIMessage
-function isAIMessage(msg: unknown): msg is AIMessage {
-  return (
-    typeof msg === "object" &&
-    msg !== null &&
-    "tool_calls" in msg &&
-    Array.isArray((msg as any).tool_calls)
-  );
-}
 
 // Utility: Safe tool call argument parsing
 function parseToolCallArgs(args: any): any {
@@ -66,18 +56,13 @@ async function callModel(
   if (!loadedModel) {
     throw new Error("Failed to load the chat model");
   }
-  // Cast to any to resolve TypeScript errors with bindTools
-  const model = (loadedModel as any).bindTools(TOOLS);
+  const model = loadedModel.bindTools?.(TOOLS);
 
   // Add current workflow step to context
-  let systemPrompt = configuration.systemPromptTemplate?.includes(
-    "{system_time}"
-  )
-    ? configuration.systemPromptTemplate.replace(
-        "{system_time}",
-        new Date().toISOString()
-      )
-    : `${configuration.systemPromptTemplate || ""}\nTime: ${new Date().toISOString()}`;
+  let systemPrompt = configuration.systemPromptTemplate.replace(
+    "{system_time}",
+    new Date().toISOString()
+  );
 
   // Add workflow context based on current step
   systemPrompt += `\n\nCurrent workflow step: ${state.workflowStep}`;
